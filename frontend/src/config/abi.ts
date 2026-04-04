@@ -1,0 +1,336 @@
+// ABI for AuctionNFT.sol — auto-derived from contract source
+// Contract: github.com/edumor/subasta-nft
+
+export const AUCTION_NFT_ABI = [
+  // ─── View functions ────────────────────────────────────────────────────────
+  {
+    name: "getAuctionInfo",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "_seller", type: "address" },
+      { name: "_nft", type: "address" },
+      { name: "_tokenId", type: "uint256" },
+      { name: "_paymentToken", type: "address" },
+      { name: "_highestBid", type: "uint256" },
+      { name: "_highestBidder", type: "address" },
+      { name: "_endTime", type: "uint256" },
+      { name: "_ended", type: "bool" },
+      { name: "_cancelled", type: "bool" },
+      { name: "_bidCount", type: "uint256" },
+    ],
+  },
+  {
+    name: "timeRemaining",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "getHighestBidUsd",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "usdValue", type: "uint256" }],
+  },
+  {
+    name: "getBidCount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "getBidHistory",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "offset", type: "uint256" },
+      { name: "limit", type: "uint256" },
+    ],
+    outputs: [
+      {
+        name: "page",
+        type: "tuple[]",
+        components: [
+          { name: "bidder", type: "address" },
+          { name: "amount", type: "uint256" },
+          { name: "timestamp", type: "uint256" },
+        ],
+      },
+    ],
+  },
+  {
+    name: "getWinner",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "winner", type: "address" },
+      { name: "winningBid", type: "uint256" },
+    ],
+  },
+  {
+    name: "getLatestPrice",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "price", type: "int256" },
+      { name: "updatedAt", type: "uint256" },
+    ],
+  },
+  {
+    name: "getUsdValue",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "tokenAmount", type: "uint256" }],
+    outputs: [{ name: "usdValue", type: "uint256" }],
+  },
+  // Public state variables
+  {
+    name: "seller",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "highestBid",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "highestBidder",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "auctionEndTime",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "ended",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "cancelled",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "paymentToken",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "nftContract",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "nftTokenId",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "royaltyBps",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "royaltyRecipient",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    name: "deposits",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "lastBid",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  // ─── Write functions ───────────────────────────────────────────────────────
+  {
+    name: "bid",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    name: "partialWithdraw",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "settleAuction",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "claimRefund",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "refundLosers",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "cancelAuction",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "endAuction",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    name: "withdrawOnCancel",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+  // ─── Events ────────────────────────────────────────────────────────────────
+  {
+    name: "AuctionStarted",
+    type: "event",
+    inputs: [
+      { name: "seller", type: "address", indexed: true },
+      { name: "nftContract", type: "address", indexed: true },
+      { name: "tokenId", type: "uint256", indexed: true },
+      { name: "paymentToken", type: "address", indexed: false },
+      { name: "startTime", type: "uint256", indexed: false },
+      { name: "endTime", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    name: "NewBid",
+    type: "event",
+    inputs: [
+      { name: "bidder", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "usdValue", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    name: "AuctionExtended",
+    type: "event",
+    inputs: [{ name: "newEndTime", type: "uint256", indexed: false }],
+  },
+  {
+    name: "AuctionEnded",
+    type: "event",
+    inputs: [
+      { name: "winner", type: "address", indexed: true },
+      { name: "winningBid", type: "uint256", indexed: false },
+      { name: "usdValue", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    name: "AuctionCancelled",
+    type: "event",
+    inputs: [],
+  },
+  {
+    name: "DepositRefunded",
+    type: "event",
+    inputs: [
+      { name: "bidder", type: "address", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "fee", type: "uint256", indexed: false },
+    ],
+  },
+] as const;
+
+// Minimal ERC-20 ABI for approve / allowance / balanceOf
+export const ERC20_ABI = [
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "decimals",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint8" }],
+  },
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+] as const;
