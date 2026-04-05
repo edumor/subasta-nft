@@ -23,18 +23,18 @@ export default function Home() {
         {/* Hero */}
         <div className="text-center py-4">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Decentralized NFT Auction
+            Subasta Descentralizada en ETH
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto text-sm">
-            Bid with ERC-20 tokens. Prices valued in real-time USD via Chainlink.
-            Creator royalties paid on-chain at settlement.
+            Ofertá con ETH nativo en Sepolia. Extensión automática de 10 min si hay oferta al final.
+            Comisión del 2% al owner al devolver depósitos. Contrato seguro y transparente.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            <TechBadge emoji="🔷" label="Solidity 0.8.28" />
-            <TechBadge emoji="⛓️" label="Chainlink Oracle" />
-            <TechBadge emoji="🛡️" label="OpenZeppelin" />
-            <TechBadge emoji="🧪" label="54 Tests" />
-            <TechBadge emoji="🌐" label="Sepolia" />
+            <TechBadge emoji="🔷" label="Solidity 0.8.20" />
+            <TechBadge emoji="💎" label="Bids en ETH" />
+            <TechBadge emoji="🛡️" label="CEI Pattern" />
+            <TechBadge emoji="⏱️" label="Auto-extensión" />
+            <TechBadge emoji="🌐" label="Sepolia Testnet" />
           </div>
         </div>
 
@@ -57,7 +57,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="text-center pt-8 border-t border-slate-800 text-slate-500 text-xs space-y-1">
           <p>
-            Built by{" "}
+            Desarrollado por{" "}
             <a
               href="https://linkedin.com/in/eduardo-moreno-15813b19b"
               target="_blank"
@@ -66,25 +66,25 @@ export default function Home() {
             >
               Eduardo Moreno
             </a>{" "}
-            · Software Architect & Blockchain Developer
+            · Ingeniero de Sistemas & Blockchain Developer
           </p>
           <p>
             <a
-              href="https://github.com/edumor/subasta-nft"
+              href="https://github.com/edumor/Subasta"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-violet-400 transition-colors"
             >
-              View on GitHub ↗
+              Ver en GitHub ↗
             </a>
             {" · "}
             <a
-              href="https://ethkipu.org"
+              href="https://sepolia.etherscan.io/address/0x1d7c0f3fe4604deeb3d3f3af1e18d98a8fa661cf"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-violet-400 transition-colors"
             >
-              ETH-KIPU Program
+              Contrato en Etherscan ↗
             </a>
           </p>
         </footer>
@@ -105,27 +105,27 @@ function TechBadge({ emoji, label }: { emoji: string; label: string }) {
 function InfoPanel() {
   return (
     <div className="card space-y-3 text-sm">
-      <h3 className="font-semibold text-white">How it works</h3>
+      <h3 className="font-semibold text-white">¿Cómo funciona?</h3>
       <div className="space-y-2 text-slate-400">
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">1.</span>
-          <span>Connect MetaMask to Sepolia testnet</span>
+          <span>Conectá MetaMask a la red Sepolia</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">2.</span>
-          <span>Approve WETH spend for the auction contract</span>
+          <span>Enviá ETH directamente como oferta (mín. 5% sobre la más alta)</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">3.</span>
-          <span>Bid — minimum 5% above current highest bid</span>
+          <span>Si ofertás en los últimos 10 min, la subasta se extiende 10 min más</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">4.</span>
-          <span>Auction auto-extends 10 min if bid in last 10 min</span>
+          <span>El owner finaliza la subasta y devuelve depósitos (−2% comisión)</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">5.</span>
-          <span>Winner claims NFT · Losers claim refund (−2% fee)</span>
+          <span>El ganador retiene su depósito · Los no ganadores lo recuperan</span>
         </div>
       </div>
     </div>
