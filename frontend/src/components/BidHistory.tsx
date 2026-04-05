@@ -1,27 +1,19 @@
 "use client";
 
-import { useBidHistory, useAuctionInfo, useTokenInfo, formatBid, shortenAddress } from "@/hooks/useAuction";
+import { useBidHistory, useAuctionState, formatEth, shortenAddress } from "@/hooks/useAuction";
 import { SEPOLIA_EXPLORER } from "@/config/wagmi";
 
 export function BidHistory() {
-  const { data: auctionData } = useAuctionInfo();
-  const info = auctionData
-    ? {
-        paymentToken: auctionData[3] as `0x${string}`,
-        highestBidder: auctionData[5] as `0x${string}`,
-        bidCount: auctionData[9] as bigint,
-      }
-    : null;
-
-  const { symbol, decimals } = useTokenInfo(info?.paymentToken);
-  const tokenDecimals = decimals ?? 18;
+  const { data: auctionData } = useAuctionState();
+  const highestBidder = auctionData?.[1]?.result as `0x${string}` | undefined;
+  const bidCount      = auctionData?.[5]?.result as bigint | undefined;
 
   const { data: bids, isLoading } = useBidHistory(0n, 20n);
 
   if (isLoading || !bids || bids.length === 0) {
     return (
       <div className="card">
-        <h2 className="font-bold text-white text-lg mb-4">Bid History</h2>
+        <h2 className="font-bold text-white text-lg mb-4">Historial de Ofertas</h2>
         {isLoading ? (
           <div className="space-y-2">
             {[0, 1, 2].map((i) => (
@@ -29,7 +21,7 @@ export function BidHistory() {
             ))}
           </div>
         ) : (
-          <p className="text-slate-400 text-sm">No bids yet. Be the first!</p>
+          <p className="text-slate-400 text-sm">Aún no hay ofertas. ¡Sé el primero!</p>
         )}
       </div>
     );
@@ -43,15 +35,16 @@ export function BidHistory() {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-bold text-white text-lg">Bid History</h2>
-        <span className="text-slate-400 text-sm">{(info?.bidCount ?? 0n).toString()} bidder(s)</span>
+        <h2 className="font-bold text-white text-lg">Historial de Ofertas</h2>
+        <span className="text-slate-400 text-sm">{(bidCount ?? 0n).toString()} ofertante(s)</span>
       </div>
 
       <div className="space-y-2">
         {sorted.map((bid, i) => {
           const isLeader =
-            bid.bidder.toLowerCase() === info?.highestBidder.toLowerCase();
-          const date = new Date(Number(bid.timestamp) * 1000);
+            highestBidder &&
+            bid.bidder.toLowerCase() === highestBidder.toLowerCase();
+
           return (
             <div
               key={bid.bidder}
@@ -63,7 +56,7 @@ export function BidHistory() {
             >
               <div className="flex items-center gap-3">
                 <span className="text-slate-500 text-xs w-5">#{i + 1}</span>
-                <div>
+                <div className="flex items-center gap-2">
                   <a
                     href={`${SEPOLIA_EXPLORER}/address/${bid.bidder}`}
                     target="_blank"
@@ -76,17 +69,16 @@ export function BidHistory() {
                   >
                     {shortenAddress(bid.bidder)} ↗
                   </a>
-                  <p className="text-xs text-slate-500">{date.toLocaleString()}</p>
+                  {isLeader && (
+                    <span className="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full">
+                      Líder
+                    </span>
+                  )}
                 </div>
-                {isLeader && (
-                  <span className="text-xs bg-violet-600 text-white px-2 py-0.5 rounded-full">
-                    Leader
-                  </span>
-                )}
               </div>
               <div className="text-right">
                 <p className="text-white font-semibold text-sm">
-                  {formatBid(bid.amount, tokenDecimals)} {symbol ?? "WETH"}
+                  {formatEth(bid.amount)} ETH
                 </p>
               </div>
             </div>
@@ -94,9 +86,9 @@ export function BidHistory() {
         })}
       </div>
 
-      {(info?.bidCount ?? 0n) > 20n && (
+      {(bidCount ?? 0n) > 20n && (
         <p className="text-center text-slate-500 text-xs mt-3">
-          Showing top 20 bids
+          Mostrando las 20 ofertas más altas
         </p>
       )}
     </div>
