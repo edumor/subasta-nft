@@ -1,36 +1,27 @@
 "use client";
 
-import { useAuctionInfo, useHighestBidUsd, useTokenInfo, formatBid, formatUsd, shortenAddress } from "@/hooks/useAuction";
-import { CountdownTimer } from "./CountdownTimer";
-import { SEPOLIA_EXPLORER } from "@/config/wagmi";
+import { useAuctionState, formatEth, shortenAddress } from "@/hooks/useAuction";
+import { SEPOLIA_EXPLORER, AUCTION_CONTRACT_ADDRESS } from "@/config/wagmi";
 
 export function AuctionCard({ onRefresh }: { onRefresh: () => void }) {
-  const { data, isLoading, error } = useAuctionInfo();
-  const { data: usdValue } = useHighestBidUsd();
+  const { data, isLoading, error } = useAuctionState();
 
-  // Parse result tuple
-  const info = data
-    ? {
-        seller: data[0] as `0x${string}`,
-        nft: data[1] as `0x${string}`,
-        tokenId: data[2] as bigint,
-        paymentToken: data[3] as `0x${string}`,
-        highestBid: data[4] as bigint,
-        highestBidder: data[5] as `0x${string}`,
-        endTime: data[6] as bigint,
-        ended: data[7] as boolean,
-        cancelled: data[8] as boolean,
-        bidCount: data[9] as bigint,
-      }
-    : null;
+  const owner       = data?.[0]?.result as `0x${string}` | undefined;
+  const highestBidder = data?.[1]?.result as `0x${string}` | undefined;
+  const highestBid  = data?.[2]?.result as bigint | undefined;
+  const ended       = data?.[3]?.result as boolean | undefined;
+  const cancelled   = data?.[4]?.result as boolean | undefined;
+  const bidCount    = data?.[5]?.result as bigint | undefined;
 
-  const { symbol, decimals } = useTokenInfo(info?.paymentToken);
+  const isActive = !ended && !cancelled;
+  const zeroAddress = "0x0000000000000000000000000000000000000000";
+  const hasNoBids = !highestBid || highestBid === 0n;
 
-  const statusBadge = info?.cancelled
-    ? <span className="badge-cancelled">Cancelled</span>
-    : info?.ended
-    ? <span className="badge-ended">Ended</span>
-    : <span className="badge-active">Live</span>;
+  const statusBadge = cancelled
+    ? <span className="badge-cancelled">Cancelada</span>
+    : ended
+    ? <span className="badge-ended">Finalizada</span>
+    : <span className="badge-active">Activa</span>;
 
   if (isLoading) {
     return (
@@ -42,19 +33,15 @@ export function AuctionCard({ onRefresh }: { onRefresh: () => void }) {
     );
   }
 
-  if (error || !info) {
+  if (error || !data) {
     return (
       <div className="card border-red-500/30">
         <p className="text-red-400 text-sm">
-          Could not load auction data. Make sure the contract address is set correctly in your environment.
+          No se pudo cargar el estado de la subasta. Verificá que la dirección del contrato sea correcta.
         </p>
       </div>
     );
   }
-
-  const zeroAddress = "0x0000000000000000000000000000000000000000";
-  const hasNoBids = info.highestBid === 0n;
-  const isActive = !info.ended && !info.cancelled;
 
   return (
     <div className="card space-y-6">
@@ -62,18 +49,17 @@ export function AuctionCard({ onRefresh }: { onRefresh: () => void }) {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-2xl">
-            🖼️
+            🔨
           </div>
           <div>
-            <p className="text-slate-400 text-xs">NFT Token ID</p>
-            <p className="text-white font-bold text-lg">#{info.tokenId.toString()}</p>
+            <p className="text-white font-bold text-lg">Subasta Segura</p>
             <a
-              href={`${SEPOLIA_EXPLORER}/address/${info.nft}`}
+              href={`${SEPOLIA_EXPLORER}/address/${AUCTION_CONTRACT_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-slate-500 hover:text-violet-400 transition-colors"
+              className="text-xs text-slate-500 hover:text-violet-400 transition-colors font-mono"
             >
-              {shortenAddress(info.nft)} ↗
+              {shortenAddress(AUCTION_CONTRACT_ADDRESS)} ↗
             </a>
           </div>
         </div>
@@ -83,62 +69,59 @@ export function AuctionCard({ onRefresh }: { onRefresh: () => void }) {
       {/* Bid info */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-900 rounded-lg p-4 space-y-1">
-          <p className="text-slate-400 text-xs uppercase tracking-wide">Highest Bid</p>
+          <p className="text-slate-400 text-xs uppercase tracking-wide">Oferta Más Alta</p>
           {hasNoBids ? (
-            <p className="text-slate-300 font-semibold">No bids yet</p>
+            <p className="text-slate-300 font-semibold">Sin ofertas</p>
           ) : (
-            <>
-              <p className="text-white font-bold text-xl">
-                {formatBid(info.highestBid, decimals ?? 18)} {symbol ?? "WETH"}
-              </p>
-              {usdValue !== undefined && (
-                <p className="text-emerald-400 text-sm">{formatUsd(usdValue)}</p>
-              )}
-            </>
+            <p className="text-white font-bold text-xl">
+              {formatEth(highestBid!)} ETH
+            </p>
           )}
         </div>
 
         <div className="bg-slate-900 rounded-lg p-4 space-y-1">
-          <p className="text-slate-400 text-xs uppercase tracking-wide">Leader</p>
-          {info.highestBidder === zeroAddress || hasNoBids ? (
-            <p className="text-slate-300 font-semibold">None</p>
+          <p className="text-slate-400 text-xs uppercase tracking-wide">Líder</p>
+          {!highestBidder || highestBidder === zeroAddress || hasNoBids ? (
+            <p className="text-slate-300 font-semibold">Ninguno</p>
           ) : (
             <a
-              href={`${SEPOLIA_EXPLORER}/address/${info.highestBidder}`}
+              href={`${SEPOLIA_EXPLORER}/address/${highestBidder}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-violet-400 hover:text-violet-300 font-mono text-sm transition-colors"
             >
-              {shortenAddress(info.highestBidder)} ↗
+              {shortenAddress(highestBidder)} ↗
             </a>
           )}
-          <p className="text-slate-500 text-xs">{info.bidCount.toString()} bidder(s)</p>
+          <p className="text-slate-500 text-xs">{(bidCount ?? 0n).toString()} ofertante(s)</p>
         </div>
       </div>
 
-      {/* Countdown */}
-      {isActive && (
-        <div>
-          <p className="text-slate-400 text-xs uppercase tracking-wide mb-2">Time Remaining</p>
-          <CountdownTimer endTime={info.endTime} onExpire={onRefresh} />
+      {/* Status info */}
+      {!isActive && (
+        <div className={`rounded-lg p-3 text-sm ${cancelled ? "bg-red-500/10 border border-red-500/20" : "bg-emerald-500/10 border border-emerald-500/20"}`}>
+          <p className={cancelled ? "text-red-300" : "text-emerald-300"}>
+            {cancelled
+              ? "⚠️ La subasta fue cancelada. Los postores pueden retirar sus depósitos."
+              : ended
+              ? `✅ Subasta finalizada. Ganador: ${highestBidder && highestBidder !== zeroAddress ? shortenAddress(highestBidder) : "ninguno"} con ${hasNoBids ? "0" : formatEth(highestBid!)} ETH.`
+              : ""}
+          </p>
         </div>
       )}
 
-      {/* Seller */}
-      <div className="pt-2 border-t border-slate-700 flex items-center justify-between text-xs text-slate-500">
+      {/* Owner */}
+      <div className="pt-2 border-t border-slate-700 text-xs text-slate-500">
         <span>
-          Seller:{" "}
+          Propietario:{" "}
           <a
-            href={`${SEPOLIA_EXPLORER}/address/${info.seller}`}
+            href={`${SEPOLIA_EXPLORER}/address/${owner}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-slate-400 hover:text-violet-400 font-mono transition-colors"
           >
-            {shortenAddress(info.seller)} ↗
+            {owner ? shortenAddress(owner) : "—"} ↗
           </a>
-        </span>
-        <span>
-          Royalty: {(Number(info.royaltyBps ?? 0n) / 100).toFixed(1)}%
         </span>
       </div>
     </div>
