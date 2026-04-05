@@ -19,12 +19,12 @@ export function Header() {
             🔨
           </div>
           <div>
-            <h1 className="font-bold text-white text-lg leading-tight">AuctionNFT</h1>
+            <h1 className="font-bold text-white text-lg leading-tight">Subasta2</h1>
             <a
               href={`${SEPOLIA_EXPLORER}/address/${AUCTION_CONTRACT_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-slate-400 hover:text-violet-400 transition-colors"
+              className="text-xs text-slate-400 hover:text-violet-400 transition-colors font-mono"
             >
               {shortenAddress(AUCTION_CONTRACT_ADDRESS)} ↗
             </a>
@@ -33,7 +33,6 @@ export function Header() {
 
         {/* Network + Wallet */}
         <div className="flex items-center gap-3">
-          {/* Network pill */}
           <div className="hidden sm:flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-full px-3 py-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-xs text-slate-300">
@@ -41,7 +40,6 @@ export function Header() {
             </span>
           </div>
 
-          {/* Wallet button */}
           {isConnected && address ? (
             <button
               onClick={() => disconnect()}
@@ -56,7 +54,7 @@ export function Header() {
               onClick={() => connect({ connector: injected() })}
               className="btn-primary text-sm py-2 px-4"
             >
-              Connect Wallet
+              Conectar Wallet
             </button>
           )}
         </div>
