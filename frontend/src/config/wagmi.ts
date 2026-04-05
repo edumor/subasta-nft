@@ -19,14 +19,9 @@ export const wagmiConfig = createConfig({
   },
 });
 
-// Contract addresses
+// Subasta2.sol deployed on Sepolia
 export const AUCTION_CONTRACT_ADDRESS =
   (process.env.NEXT_PUBLIC_AUCTION_CONTRACT_ADDRESS as `0x${string}`) ??
-  "0x0000000000000000000000000000000000000000";
-
-// Sepolia known addresses
-export const WETH_SEPOLIA = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9" as const;
-export const CHAINLINK_ETH_USD_SEPOLIA =
-  "0x694AA1769357215DE4FAC081bf1f309aDC325306" as const;
+  "0x1d7c0f3fe4604deeb3d3f3af1e18d98a8fa661cf";
 
 export const SEPOLIA_EXPLORER = "https://sepolia.etherscan.io";
