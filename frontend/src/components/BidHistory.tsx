@@ -1,12 +1,15 @@
 "use client";
 
-import { useBidHistory, useAuctionState, formatEth, shortenAddress } from "@/hooks/useAuction";
+import { useBidHistory, useAuctionState, useTokenSymbol, formatEth, shortenAddress } from "@/hooks/useAuction";
 import { SEPOLIA_EXPLORER } from "@/config/wagmi";
 
 export function BidHistory() {
   const { data: auctionData } = useAuctionState();
   const highestBidder = auctionData?.[1]?.result as `0x${string}` | undefined;
   const bidCount      = auctionData?.[5]?.result as bigint | undefined;
+  const paymentToken  = auctionData?.[8]?.result as `0x${string}` | undefined;
+  const { data: tokenSymbol } = useTokenSymbol(paymentToken);
+  const symbol = (tokenSymbol as string | undefined) ?? "TOKEN";
 
   const { data: bids, isLoading } = useBidHistory(0n, 20n);
 
@@ -78,7 +81,7 @@ export function BidHistory() {
               </div>
               <div className="text-right">
                 <p className="text-white font-semibold text-sm">
-                  {formatEth(bid.amount)} ETH
+                  {formatEth(bid.amount)} {symbol}
                 </p>
               </div>
             </div>

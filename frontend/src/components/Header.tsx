@@ -3,7 +3,8 @@
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { shortenAddress } from "@/hooks/useAuction";
-import { SEPOLIA_EXPLORER, AUCTION_CONTRACT_ADDRESS } from "@/config/wagmi";
+import { SEPOLIA_EXPLORER, DEFAULT_AUCTION_ADDRESS } from "@/config/wagmi";
+const AUCTION_CONTRACT_ADDRESS = DEFAULT_AUCTION_ADDRESS;
 
 export function Header() {
   const { address, isConnected, chain } = useAccount();
