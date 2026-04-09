@@ -43,9 +43,9 @@ contract AuctionNFT is ReentrancyGuard {
     address public immutable royaltyRecipient;
     uint256 public immutable royaltyBps; // basis points (e.g. 250 = 2.5%)
 
+    uint256 public startTime;
     uint256 public auctionEndTime;
-    uint256 private immutable maxExtensionTime;
-    uint256 private extendedTime;
+    uint256 public immutable originalEndTime; // Original planned end (never changes)
 
     address public highestBidder;
     uint256 public highestBid;
@@ -69,6 +69,10 @@ contract AuctionNFT is ReentrancyGuard {
     uint256 private constant BPS_BASE = 10_000;
     uint256 private constant MAX_ROYALTY_BPS = 1_000;     // 10% max royalty
     uint256 private constant STALE_PRICE_THRESHOLD = 1 hours;
+
+    // ─── Events (extra) ────────────────────────────────────────────────────────
+    // (declared here so they appear before use)
+    event NFTReclaimed(address indexed seller);
 
     // ─── Events ────────────────────────────────────────────────────────────────
 
@@ -98,6 +102,7 @@ contract AuctionNFT is ReentrancyGuard {
     }
 
     modifier onlyActive() {
+        require(block.timestamp >= startTime, "AuctionNFT: auction not started yet");
         require(block.timestamp < auctionEndTime, "AuctionNFT: auction ended");
         require(!ended, "AuctionNFT: already ended");
         require(!cancelled, "AuctionNFT: cancelled");
@@ -112,24 +117,38 @@ contract AuctionNFT is ReentrancyGuard {
         _;
     }
 
+    /**
+     * @dev Ensures the NFT is actually held by this contract before allowing bids.
+     *      Protects bidders from paying for an auction where the asset was never deposited.
+     */
+    modifier nftDeposited() {
+        require(
+            nftContract.ownerOf(nftTokenId) == address(this),
+            "AuctionNFT: NFT not deposited in contract"
+        );
+        _;
+    }
+
     // ─── Constructor ───────────────────────────────────────────────────────────
 
     /**
      * @notice Deploy a new NFT auction.
-     * @param _nftContract   Address of the ERC-721 contract.
-     * @param _tokenId       Token ID to auction.
-     * @param _paymentToken  ERC-20 token accepted for bids (e.g. WETH, USDC).
-     * @param _priceFeed     Chainlink AggregatorV3 feed for paymentToken/USD.
-     * @param _durationMins  Auction duration in minutes.
+     * @param _nftContract      Address of the ERC-721 contract.
+     * @param _tokenId          Token ID to auction.
+     * @param _paymentToken     ERC-20 token accepted for bids (e.g. WETH, USDC).
+     * @param _priceFeed        Chainlink AggregatorV3 feed for paymentToken/USD.
+     * @param _startTime        Unix timestamp for auction start (0 = start immediately).
+     * @param _endTime          Unix timestamp for auction end.
      * @param _royaltyRecipient Address that receives creator royalties.
-     * @param _royaltyBps    Royalty in basis points (max 1000 = 10%).
+     * @param _royaltyBps       Royalty in basis points (max 1000 = 10%).
      */
     constructor(
         address _nftContract,
         uint256 _tokenId,
         address _paymentToken,
         address _priceFeed,
-        uint256 _durationMins,
+        uint256 _startTime,
+        uint256 _endTime,
         address _royaltyRecipient,
         uint256 _royaltyBps
     ) {
@@ -137,8 +156,12 @@ contract AuctionNFT is ReentrancyGuard {
         require(_paymentToken != address(0), "AuctionNFT: zero token address");
         require(_priceFeed != address(0), "AuctionNFT: zero feed address");
         require(_royaltyRecipient != address(0), "AuctionNFT: zero royalty address");
-        require(_durationMins > 0, "AuctionNFT: zero duration");
+        require(_endTime > block.timestamp, "AuctionNFT: end time in past");
         require(_royaltyBps <= MAX_ROYALTY_BPS, "AuctionNFT: royalty too high");
+
+        uint256 resolvedStart = _startTime == 0 ? block.timestamp : _startTime;
+        require(_startTime == 0 || _startTime >= block.timestamp, "AuctionNFT: start time in past");
+        require(_endTime > resolvedStart, "AuctionNFT: end must be after start");
 
         seller = msg.sender;
         nftContract = IERC721(_nftContract);
@@ -148,17 +171,17 @@ contract AuctionNFT is ReentrancyGuard {
         royaltyRecipient = _royaltyRecipient;
         royaltyBps = _royaltyBps;
 
-        uint256 duration = _durationMins * 1 minutes;
-        auctionEndTime = block.timestamp + duration;
-        maxExtensionTime = duration;
+        startTime = resolvedStart;
+        auctionEndTime = _endTime;
+        originalEndTime = _endTime; // Immutable reference for the 10-min extension cap
 
         emit AuctionStarted(
             msg.sender,
             _nftContract,
             _tokenId,
             _paymentToken,
-            block.timestamp,
-            auctionEndTime
+            resolvedStart,
+            _endTime
         );
     }
 
@@ -169,7 +192,7 @@ contract AuctionNFT is ReentrancyGuard {
      * @dev Caller must approve this contract to spend `amount` tokens first.
      * @param amount Amount of paymentToken to add to your cumulative bid.
      */
-    function bid(uint256 amount) external nonReentrant onlyActive {
+    function bid(uint256 amount) external nonReentrant onlyActive nftDeposited {
         require(msg.sender != seller, "AuctionNFT: seller cannot bid");
         require(amount > 0, "AuctionNFT: zero amount");
         require(
@@ -201,18 +224,18 @@ contract AuctionNFT is ReentrancyGuard {
             hasBid[msg.sender] = true;
         }
 
-        // Auto-extension
-        if (
-            block.timestamp + EXTENSION_WINDOW > auctionEndTime &&
-            extendedTime < maxExtensionTime
-        ) {
-            uint256 ext = EXTENSION_WINDOW;
-            if (extendedTime + ext > maxExtensionTime) {
-                ext = maxExtensionTime - extendedTime;
+        // Auto-extension: if bid lands in the last 10 minutes, push the end time
+        // to (now + 10 min), but never beyond (originalEndTime + 10 min).
+        // This means the auction always closes at most 10 minutes after its
+        // originally scheduled end, regardless of how many bids arrive.
+        if (block.timestamp + EXTENSION_WINDOW > auctionEndTime) {
+            uint256 newEnd = block.timestamp + EXTENSION_WINDOW;
+            uint256 maxEnd = originalEndTime + EXTENSION_WINDOW;
+            if (newEnd > maxEnd) newEnd = maxEnd;
+            if (newEnd > auctionEndTime) {
+                auctionEndTime = newEnd;
+                emit AuctionExtended(auctionEndTime);
             }
-            extendedTime += ext;
-            auctionEndTime += ext;
-            emit AuctionExtended(auctionEndTime);
         }
 
         // Interactions
@@ -337,7 +360,31 @@ contract AuctionNFT is ReentrancyGuard {
     // ─── Cancellation ──────────────────────────────────────────────────────────
 
     /**
-     * @notice Cancel the auction (only if no bids have been placed). Returns NFT to seller.
+     * @notice Cancel a scheduled auction BEFORE it starts (during the pending window).
+     * @dev The onlyActive modifier requires block.timestamp >= startTime, so it cannot
+     *      be used here. This function fills that gap: the seller can abort a future-dated
+     *      auction at any point before startTime.
+     *      No bids are possible yet, so no refunds are needed — only the NFT must go back.
+     */
+    function cancelBeforeStart() external nonReentrant onlySeller {
+        require(block.timestamp < startTime, "AuctionNFT: auction already started");
+        require(!cancelled, "AuctionNFT: already cancelled");
+        require(!ended, "AuctionNFT: already ended");
+
+        // Effects
+        ended = true;
+        cancelled = true;
+
+        emit AuctionCancelled();
+
+        // Return NFT to seller if it was already deposited
+        if (nftContract.ownerOf(nftTokenId) == address(this)) {
+            nftContract.safeTransferFrom(address(this), seller, nftTokenId);
+        }
+    }
+
+    /**
+     * @notice Cancel the auction during the active window (only if no bids). Returns NFT to seller.
      */
     function cancelAuction() external nonReentrant onlySeller onlyActive {
         require(highestBid == 0, "AuctionNFT: cannot cancel with active bids");
@@ -349,6 +396,29 @@ contract AuctionNFT is ReentrancyGuard {
         emit AuctionCancelled();
 
         // Return NFT to seller
+        nftContract.safeTransferFrom(address(this), seller, nftTokenId);
+    }
+
+    /**
+     * @notice Seller reclaims the NFT when the auction ends with zero bids.
+     * @dev Protects against the NFT being permanently locked in the contract.
+     *      Only callable when:
+     *        - The auction has ended (by time or manual endAuction)
+     *        - It was NOT cancelled (cancelAuction already returns the NFT)
+     *        - Nobody placed a bid (highestBid == 0)
+     *        - The NFT has not already been transferred
+     */
+    function reclaimNFT() external nonReentrant onlySeller onlyEnded {
+        require(!cancelled, "AuctionNFT: use withdrawOnCancel path");
+        require(highestBid == 0, "AuctionNFT: auction has bids — use settleAuction");
+        require(!nftTransferred, "AuctionNFT: NFT already transferred");
+
+        // Effects
+        nftTransferred = true;
+
+        emit NFTReclaimed(seller);
+
+        // Interactions — return NFT to seller
         nftContract.safeTransferFrom(address(this), seller, nftTokenId);
     }
 
@@ -439,6 +509,34 @@ contract AuctionNFT is ReentrancyGuard {
     }
 
     /**
+     * @notice Returns true if this contract currently holds the NFT to be auctioned.
+     * @dev A false result during the active window means bidders should NOT place bids,
+     *      as there is no asset to win. The frontend should surface this as a warning.
+     */
+    function isNFTDeposited() external view returns (bool) {
+        try nftContract.ownerOf(nftTokenId) returns (address owner) {
+            return owner == address(this);
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * @notice Returns true if the auction hasn't started yet.
+     */
+    function isPending() external view returns (bool) {
+        return block.timestamp < startTime;
+    }
+
+    /**
+     * @notice Seconds until auction starts (0 if already started).
+     */
+    function timeUntilStart() external view returns (uint256) {
+        if (block.timestamp >= startTime) return 0;
+        return startTime - block.timestamp;
+    }
+
+    /**
      * @notice Seconds remaining in the auction (0 if ended).
      */
     function timeRemaining() external view returns (uint256) {
@@ -459,6 +557,7 @@ contract AuctionNFT is ReentrancyGuard {
             address _paymentToken,
             uint256 _highestBid,
             address _highestBidder,
+            uint256 _startTime,
             uint256 _endTime,
             bool _ended,
             bool _cancelled,
@@ -472,6 +571,7 @@ contract AuctionNFT is ReentrancyGuard {
             address(paymentToken),
             highestBid,
             highestBidder,
+            startTime,
             auctionEndTime,
             ended || block.timestamp >= auctionEndTime,
             cancelled,
