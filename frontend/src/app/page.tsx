@@ -7,6 +7,7 @@ import { AuctionCard } from "@/components/AuctionCard";
 import { BidForm } from "@/components/BidForm";
 import { ActionButtons } from "@/components/ActionButtons";
 import { BidHistory } from "@/components/BidHistory";
+import { AdminPanel } from "@/components/AdminPanel";
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -20,26 +21,29 @@ export default function Home() {
       <Header />
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        {/* Hero */}
+
+        {/* ── Hero ─────────────────────────────────────────────────────────────── */}
         <div className="text-center py-4">
           <h2 className="text-3xl font-bold text-white mb-2">
-            Subasta Descentralizada en ETH
+            Subasta de NFTs Descentralizada
           </h2>
           <p className="text-slate-400 max-w-xl mx-auto text-sm">
-            Ofertá con ETH nativo en Sepolia. Extensión automática de 10 min si hay oferta al final.
-            Comisión del 2% al owner al devolver depósitos. Contrato seguro y transparente.
+            Ofertá con WETH en Sepolia. Bids en ERC-20, precio en USD vía Chainlink.
+            Extensión automática de 10 min si hay oferta al cierre. Contrato seguro y transparente.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
-            <TechBadge emoji="🔷" label="Solidity 0.8.20" />
-            <TechBadge emoji="💎" label="Bids en ETH" />
-            <TechBadge emoji="🛡️" label="CEI Pattern" />
-            <TechBadge emoji="⏱️" label="Auto-extensión" />
+            <TechBadge emoji="🔷" label="Solidity 0.8.28" />
+            <TechBadge emoji="💎" label="Bids en WETH (ERC-20)" />
+            <TechBadge emoji="🛡️" label="CEI + ReentrancyGuard" />
+            <TechBadge emoji="⏱️" label="Auto-extensión 10 min" />
+            <TechBadge emoji="📈" label="USD via Chainlink" />
             <TechBadge emoji="🌐" label="Sepolia Testnet" />
           </div>
         </div>
 
-        {/* Main grid */}
+        {/* ── Main grid ─────────────────────────────────────────────────────────── */}
         <div className="grid lg:grid-cols-5 gap-6">
+
           {/* Left: Auction info + Bid history */}
           <div className="lg:col-span-3 space-y-6">
             <AuctionCard onRefresh={handleRefresh} />
@@ -54,7 +58,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Admin Panel (seller only — auto-hidden for everyone else) ──────── */}
+        <AdminPanel />
+
+        {/* ── Footer ───────────────────────────────────────────────────────────── */}
         <footer className="text-center pt-8 border-t border-slate-800 text-slate-500 text-xs space-y-1">
           <p>
             Desarrollado por{" "}
@@ -66,11 +73,11 @@ export default function Home() {
             >
               Eduardo Moreno
             </a>{" "}
-            · Ingeniero de Sistemas & Blockchain Developer
+            · Ingeniero de Sistemas &amp; Blockchain Developer
           </p>
           <p>
             <a
-              href="https://github.com/edumor/Subasta"
+              href="https://github.com/edumor/subasta-nft"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-violet-400 transition-colors"
@@ -79,12 +86,12 @@ export default function Home() {
             </a>
             {" · "}
             <a
-              href="https://sepolia.etherscan.io/address/0x1d7c0f3fe4604deeb3d3f3af1e18d98a8fa661cf"
+              href="https://sepolia.etherscan.io"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-violet-400 transition-colors"
             >
-              Contrato en Etherscan ↗
+              Sepolia Etherscan ↗
             </a>
           </p>
         </footer>
@@ -109,23 +116,23 @@ function InfoPanel() {
       <div className="space-y-2 text-slate-400">
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">1.</span>
-          <span>Conectá MetaMask a la red Sepolia</span>
+          <span>Conectá MetaMask a la red <strong className="text-slate-300">Sepolia</strong></span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">2.</span>
-          <span>Enviá ETH directamente como oferta (mín. 5% sobre la más alta)</span>
+          <span>Aprobá el gasto de <strong className="text-slate-300">WETH</strong> para el contrato (un click)</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">3.</span>
-          <span>Si ofertás en los últimos 10 min, la subasta se extiende 10 min más</span>
+          <span>Enviá tu oferta en WETH (mínimo 5% sobre la más alta)</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">4.</span>
-          <span>El owner finaliza la subasta y devuelve depósitos (−2% comisión)</span>
+          <span>Si ofertás en los últimos 10 min, la subasta se extiende 10 min más</span>
         </div>
         <div className="flex gap-2">
           <span className="text-violet-400 font-bold">5.</span>
-          <span>El ganador retiene su depósito · Los no ganadores lo recuperan</span>
+          <span>Al cierre: el NFT va al ganador · Otros reclaman su depósito (−2% comisión)</span>
         </div>
       </div>
     </div>
