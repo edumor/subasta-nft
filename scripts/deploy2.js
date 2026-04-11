@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 /**
- * CONFIGURACIÓN DE DIRECCIONES
+ * CONFIGURACIÓN DE DIRECCIONES Y CONSTANTES
  */
 const FACTORY_ADDRESS  = "0x754D3F1232F2ddbF8471C2604Cf6Aed45fEdf4C6";
 const NFT_ADDRESS      = "0xf0344Af8CB990B9a7ebBE97b7fef3D4A6f61e7ca";
@@ -10,64 +10,64 @@ const WETH_SEPOLIA     = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
 const TOKEN_ID         = 0n;
 const ROYALTY_BPS      = 250; // 2.5%
 
-// TU WALLET PERSONAL (La que quieres que sea titular en Vercel)
-const MI_WALLET_PERSONAL = "0x4829f4f3aadee47Cb1cc795B2eC78A166042e918";
-
 async function main() {
+  // Obtenemos la cuenta que firma la transacción (tu wallet configurada en hardhat.config.js)
   const [deployer] = await ethers.getSigners();
   
-  console.log("Iniciando despliegue con la cuenta:", deployer.address);
+  console.log("=========================================================");
+  console.log("INICIANDO DESPLIEGUE DE SUBASTA");
+  console.log("Ejecutado por wallet:", deployer.address);
+  console.log("=========================================================");
 
-  // Configuración de tiempos (7 días de duración)
+  // Configuración de tiempo: 7 días desde ahora
   const now = Math.floor(Date.now() / 1000);
-  const endTime = now + 60 * 60 * 24 * 7;
+  const endTime = now + (60 * 60 * 24 * 7);
 
   // Instanciar contratos existentes
   const factory = await ethers.getContractAt("AuctionFactory", FACTORY_ADDRESS);
   const nft = await ethers.getContractAt("MockNFT", NFT_ADDRESS);
 
-  console.log("---------------------------------------------------------");
-  console.log("Creando nueva subasta vía Factory...");
+  console.log("1. Creando instancia de subasta en la Factory...");
 
   /**
-   * IMPORTANTE: Pasamos MI_WALLET_PERSONAL como el 9no argumento (_seller).
-   * Asegúrate de que AuctionFactory.sol acepte este argumento en createAuction.
+   * Llamada a createAuction con los 8 parámetros definidos en tu AuctionFactory.sol
+   * La Factory usará msg.sender (tu wallet) como el Seller del contrato AuctionNFT.
    */
   const tx = await factory.createAuction(
     NFT_ADDRESS, 
     TOKEN_ID, 
     WETH_SEPOLIA, 
     CHAINLINK_ETH_USD_SEPOLIA,
-    0,           // startTime (0 = ahora)
+    0,           // startTime (0 = empieza ya)
     endTime, 
-    deployer.address, // royaltyRecipient (puede ser la misma wallet u otra)
-    ROYALTY_BPS,
-    MI_WALLET_PERSONAL // <--- Aquí definimos quién es el SELLER
+    deployer.address, // royaltyRecipient
+    ROYALTY_BPS
   );
 
-  console.log("Esperando confirmación de la transacción...");
+  console.log("   Esperando confirmación en la red Sepolia...");
   await tx.wait();
 
-  // Obtener la dirección de la subasta recién creada
-  const auctions = await factory.getSellerAuctions(MI_WALLET_PERSONAL);
+  // Recuperar la dirección de la nueva subasta desde la Factory
+  const auctions = await factory.getSellerAuctions(deployer.address);
   const auctionAddress = auctions[auctions.length - 1];
   
-  console.log("✅ AuctionNFT desplegada con éxito en:", auctionAddress);
-  console.log("Titular (Seller) asignado:", MI_WALLET_PERSONAL);
+  console.log("✅ Subasta creada exitosamente en:", auctionAddress);
 
   /**
-   * TRANSFERENCIA DEL NFT AL CONTRATO
-   * Nota: Tu wallet debe poseer el NFT y haber dado 'approve' al contrato o factory
+   * TRANSFERENCIA DEL NFT
+   * Para que la subasta sea válida, el contrato AuctionNFT debe poseer el NFT.
    */
   console.log("---------------------------------------------------------");
-  console.log("Transfiriendo NFT al contrato de subasta...");
+  console.log("2. Transfiriendo NFT al contrato de subasta...");
+  
   const transferTx = await nft.safeTransferFrom(deployer.address, auctionAddress, TOKEN_ID);
   await transferTx.wait();
-  console.log("✅ NFT transferido. La subasta ya tiene el activo.");
+  
+  console.log("✅ NFT transferido. El contrato ahora es el custodio del activo.");
 
-  // Variables de entorno para tu proyecto en Vercel
+  // Resultados finales para configurar el Frontend
   console.log("\n=========================================================");
-  console.log("COPIA ESTO PARA TUS VARIABLES DE ENTORNO EN VERCEL:");
+  console.log("COPIA ESTO PARA TU CONFIGURACIÓN EN VERCEL / FRONTEND:");
   console.log("=========================================================");
   console.log(`NEXT_PUBLIC_AUCTION_CONTRACT_ADDRESS=${auctionAddress}`);
   console.log(`NEXT_PUBLIC_FACTORY_CONTRACT_ADDRESS=${FACTORY_ADDRESS}`);
@@ -77,6 +77,7 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("Error durante el despliegue:", error);
+    console.error("\n❌ Error durante el proceso:");
+    console.error(error);
     process.exit(1);
   });
