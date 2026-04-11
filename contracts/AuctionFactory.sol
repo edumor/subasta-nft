@@ -63,7 +63,8 @@ contract AuctionFactory {
             _startTime,
             _endTime,
             _royaltyRecipient,
-            _royaltyBps
+            _royaltyBps,
+            msg.sender
         );
 
         auction = address(newAuction);

@@ -150,12 +150,14 @@ contract AuctionNFT is ReentrancyGuard {
         uint256 _startTime,
         uint256 _endTime,
         address _royaltyRecipient,
-        uint256 _royaltyBps
+        uint256 _royaltyBps,
+        address _seller
     ) {
         require(_nftContract != address(0), "AuctionNFT: zero nft address");
         require(_paymentToken != address(0), "AuctionNFT: zero token address");
         require(_priceFeed != address(0), "AuctionNFT: zero feed address");
         require(_royaltyRecipient != address(0), "AuctionNFT: zero royalty address");
+        require(_seller != address(0), "AuctionNFT: zero seller address");
         require(_endTime > block.timestamp, "AuctionNFT: end time in past");
         require(_royaltyBps <= MAX_ROYALTY_BPS, "AuctionNFT: royalty too high");
 
@@ -163,7 +165,7 @@ contract AuctionNFT is ReentrancyGuard {
         require(_startTime == 0 || _startTime >= block.timestamp, "AuctionNFT: start time in past");
         require(_endTime > resolvedStart, "AuctionNFT: end must be after start");
 
-        seller = msg.sender;
+        seller = _seller;
         nftContract = IERC721(_nftContract);
         nftTokenId = _tokenId;
         paymentToken = IERC20(_paymentToken);
