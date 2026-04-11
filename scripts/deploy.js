@@ -8,15 +8,11 @@ const CHAINLINK_ETH_USD_SEPOLIA = "0x694AA1769357215DE4FAC081bf1f309aDC325306";
 const WETH_SEPOLIA              = "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9";
 
 // ─── Auction timing ───────────────────────────────────────────────────────────
-// startTime = 0 means "start immediately" (resolved to block.timestamp inside constructor)
-// endTime   = now + 7 days
-const START_TIME   = 0;            // 0 = immediate start
+const START_TIME   = 0;             // 0 = immediate start
 const DURATION_SEC = 60 * 60 * 24 * 7; // 7 days in seconds
 
 // ─── Royalty ──────────────────────────────────────────────────────────────────
 const ROYALTY_BPS = 250; // 2.5%
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -24,37 +20,35 @@ async function main() {
   const endTime = now + DURATION_SEC;
 
   console.log("─".repeat(60));
-  console.log("Deploying AuctionFactory + sample AuctionNFT");
+  console.log("Iniciando despliegue de Subasta (Corregido)");
   console.log("─".repeat(60));
   console.log("Deployer  :", deployer.address);
   console.log("Balance   :", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
-  console.log("Start time:", START_TIME === 0 ? "Immediate (block.timestamp)" : new Date(START_TIME * 1000).toISOString());
-  console.log("End time  :", new Date(endTime * 1000).toISOString());
 
   // ── 1. Deploy AuctionFactory ──────────────────────────────────────────────
-  console.log("\n[1/5] Deploying AuctionFactory...");
+  console.log("\n[1/5] Desplegando AuctionFactory...");
   const Factory = await ethers.getContractFactory("AuctionFactory");
   const factory = await Factory.deploy();
   await factory.waitForDeployment();
   const factoryAddress = await factory.getAddress();
-  console.log("  AuctionFactory deployed at:", factoryAddress);
+  console.log("  AuctionFactory desplegado en:", factoryAddress);
 
   // ── 2. Deploy MockNFT ─────────────────────────────────────────────────────
-  console.log("\n[2/5] Deploying MockNFT...");
+  console.log("\n[2/5] Desplegando MockNFT...");
   const MockNFT = await ethers.getContractFactory("MockNFT");
   const nft = await MockNFT.deploy();
   await nft.waitForDeployment();
   const nftAddress = await nft.getAddress();
-  console.log("  MockNFT deployed at:", nftAddress);
+  console.log("  MockNFT desplegado en:", nftAddress);
 
-  // Mint token #0 to deployer
+  // Mint token #0 al deployer
   const mintTx = await nft.mint(deployer.address);
   await mintTx.wait();
   const tokenId = 0n;
-  console.log(`  Minted NFT #${tokenId} to ${deployer.address}`);
+  console.log(`  NFT #${tokenId} minteado para ${deployer.address}`);
 
   // ── 3. Create auction via Factory ─────────────────────────────────────────
-  console.log("\n[3/5] Creating auction via AuctionFactory...");
+  console.log("\n[3/5] Creando subasta via AuctionFactory...");
   const createTx = await factory.createAuction(
     nftAddress,
     tokenId,
@@ -62,56 +56,53 @@ async function main() {
     CHAINLINK_ETH_USD_SEPOLIA,
     START_TIME,
     endTime,
-    deployer.address, // royalty recipient
+    deployer.address,
     ROYALTY_BPS
   );
   const receipt = await createTx.wait();
 
-  // Extract auction address from AuctionCreated event
-  const iface = new ethers.Interface([
-    "event AuctionCreated(address indexed auction, address indexed seller, address indexed nftContract, uint256 tokenId, address paymentToken, uint256 startTime, uint256 endTime)"
-  ]);
-  const log = receipt.logs.find((l) => {
-    try { iface.parseLog(l); return true; } catch { return false; }
-  });
-  const parsed = iface.parseLog(log);
-  const auctionAddress = parsed.args.auction;
-  console.log("  AuctionNFT deployed at:", auctionAddress);
+  // PARCHE CRÍTICO: Extracción robusta del evento AuctionCreated
+  const iface = factory.interface;
+  const event = receipt.logs
+    .map((log) => {
+      try { return iface.parseLog(log); } catch (e) { return null; }
+    })
+    .find((parsed) => parsed && parsed.name === "AuctionCreated");
+
+  if (!event) {
+    throw new Error("No se pudo encontrar el evento AuctionCreated en los logs de la transacción.");
+  }
+
+  const auctionAddress = event.args.auction;
+  console.log("  AuctionNFT (Instancia) creada en:", auctionAddress);
 
   // ── 4. Transfer NFT to auction contract ───────────────────────────────────
-  console.log("\n[4/5] Transferring NFT to auction contract...");
+  console.log("\n[4/5] Transfiriendo NFT al contrato de subasta...");
   const transferTx = await nft.safeTransferFrom(deployer.address, auctionAddress, tokenId);
   await transferTx.wait();
-  console.log("  NFT transferred. Auction is live!");
+  console.log("  NFT transferido con éxito. ¡Subasta activa!");
 
   // ── 5. Summary ────────────────────────────────────────────────────────────
-  console.log("\n[5/5] Deployment summary");
+  console.log("\n[5/5] Resumen de Despliegue");
   console.log("─".repeat(60));
   console.log("AuctionFactory  :", factoryAddress);
-  console.log("MockNFT         :", nftAddress);
   console.log("AuctionNFT      :", auctionAddress);
-  console.log("Payment token   :", WETH_SEPOLIA);
-  console.log("Price feed      :", CHAINLINK_ETH_USD_SEPOLIA);
-  console.log("Start time      :", START_TIME === 0 ? "Immediate" : new Date(START_TIME * 1000).toISOString());
-  console.log("End time        :", new Date(endTime * 1000).toISOString());
-  console.log("Royalty         :", ROYALTY_BPS / 100, "%");
   console.log("─".repeat(60));
-  console.log("\n✅ Copy these addresses to your Vercel env vars:");
+  console.log("\n✅ COPIÁ ESTAS VARIABLES A TU ENTORNO (VERCEL):");
   console.log(`NEXT_PUBLIC_AUCTION_CONTRACT_ADDRESS=${auctionAddress}`);
   console.log(`NEXT_PUBLIC_FACTORY_CONTRACT_ADDRESS=${factoryAddress}`);
 
-  // Optionally verify on Etherscan
+  // Verificación opcional en Etherscan
   if (process.env.ETHERSCAN_API_KEY) {
-    console.log("\nWaiting 30s for Etherscan to index...");
-    await new Promise((r) => setTimeout(r, 30_000));
+    console.log("\nEsperando 30s para indexación en Etherscan...");
+    await new Promise((r) => setTimeout(r, 30000));
     try {
       await run("verify:verify", {
         address: factoryAddress,
         constructorArguments: [],
       });
-      console.log("AuctionFactory verified on Etherscan!");
     } catch (e) {
-      console.log("Etherscan verification failed:", e.message);
+      console.log("Aviso de verificación:", e.message);
     }
   }
 }
@@ -119,6 +110,6 @@ async function main() {
 main()
   .then(() => process.exit(0))
   .catch((err) => {
-    console.error(err);
+    console.error("❌ Error en el proceso:", err);
     process.exit(1);
   });
