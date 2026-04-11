@@ -20,7 +20,7 @@ export function Header() {
             🔨
           </div>
           <div>
-            <h1 className="font-bold text-white text-lg leading-tight">Subasta2</h1>
+            <h1 className="font-bold text-white text-lg leading-tight">Subasta NFT</h1>
             <a
               href={`${SEPOLIA_EXPLORER}/address/${AUCTION_CONTRACT_ADDRESS}`}
               target="_blank"

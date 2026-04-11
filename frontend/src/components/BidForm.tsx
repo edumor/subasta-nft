@@ -86,7 +86,8 @@ export function BidForm() {
   // Parse user's typed bid amount
   const bidAmountRaw = useMemo(() => {
     if (!bidInput) return 0n;
-    try { return parseUnits(bidInput, decimals); } catch { return 0n; }
+    const normalized = bidInput.replace(",", ".");
+    try { return parseUnits(normalized, decimals); } catch { return 0n; }
   }, [bidInput, decimals]);
 
   // Does the user have enough allowance for this bid?
