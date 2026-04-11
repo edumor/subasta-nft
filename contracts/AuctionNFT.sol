@@ -410,7 +410,7 @@ contract AuctionNFT is ReentrancyGuard {
      */
     function reclaimNFT() external nonReentrant onlySeller onlyEnded {
         require(!cancelled, "AuctionNFT: use withdrawOnCancel path");
-        require(highestBid == 0, "AuctionNFT: auction has bids — use settleAuction");
+        require(highestBid == 0, "AuctionNFT: auction has bids - use settleAuction");
         require(!nftTransferred, "AuctionNFT: NFT already transferred");
 
         // Effects
