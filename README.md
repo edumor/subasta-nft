@@ -304,3 +304,4 @@ Part of the [ETH-KIPU](https://ethkipu.org) Blockchain Development Program.
 | Tooling | Remix IDE | Hardhat |
 | Test coverage | None | 54 tests |
 | Reentrancy guard | CEI only | ReentrancyGuard + CEI |
+# Trigger Deploy
